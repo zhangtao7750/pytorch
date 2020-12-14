@@ -253,12 +253,14 @@ class RegisterDispatchKey:
 
     def gen_structured_class_set_output(self, k: SchemaKind, parent_class: str, generate_super: bool) -> str:
         if generate_super:
-            set_output_super = f"{parent_class}::set_output(output_idx, sizes, strides, options, names);"
+            set_output_super = f"{parent_class}::set_output(output_idx, sizes, strides, options, names, quant_options);"
         else:
             set_output_super = ""
         return f"""
-void set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
-                TensorOptions options, DimnameList names) override {{
+void set_output(
+        int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
+        TensorOptions options, DimnameList names,
+        c10::optional<TensorQuantizationOptions> quant_options = c10::nullopt) override {{
     {self.gen_structured_class_set_output_body(k)}
     if (!names.empty()) namedinference::propagate_names(outputs_[output_idx], names);
     // super must happen after, so that downstream can use maybe_get_output

@@ -297,7 +297,10 @@ struct CAFFE2_API TensorIteratorBase : public impl::MetaBase {
     return true;
   }
 
-  void set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides, TensorOptions options, DimnameList names) override;
+  void set_output(
+      int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
+      TensorOptions options, DimnameList names,
+      c10::optional<TensorQuantizationOptions> quant_options = c10::nullopt) override;
 
   void build_binary_op(const Tensor& out, const Tensor& a, const Tensor& b);
 
@@ -423,7 +426,10 @@ struct CAFFE2_API TensorIterator final : public TensorIteratorBase {
   static TensorIterator reduce_op(Tensor& out1, Tensor& out2, const Tensor& a);
 
   const Tensor& maybe_get_output(int64_t output_idx) override;
-  void set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides, TensorOptions options, DimnameList names) override;
+  void set_output(
+      int64_t output_idx, IntArrayRef sizes, IntArrayRef strides, TensorOptions options,
+      DimnameList names,
+      c10::optional<TensorQuantizationOptions> quant_options = c10::nullopt) override;
 };
 
 class CAFFE2_API TensorIteratorConfig final {

@@ -475,17 +475,47 @@ void TensorIteratorBase::allocate_or_resize_outputs() {
         }
       }
       auto tensor_shape = invert_perm(shape_);
+
+      // For quantized output tensors, get the quantization params from the
+      // input.
+      c10::optional<TensorQuantizationOptions> quant_options = c10::nullopt;
+      const auto& options = op.options();
+      if (options.dtype() == at::kQInt8 || options.dtype() == at::kQUInt8 ||
+          options.dtype() == at::kQInt32) {
+        // At the moment, quantized kernels mostly handle output Tensor
+        // construction manually, this path is an edge case. So, only support
+        // the single input case for now.
+        /*
+        TORCH_INTERNAL_ASSERT(
+            operands_.size() == num_outputs_ + 1,
+            "Advanced indexing of quantized Tensors with multiple inputs is not "
+            "supported yet.");
+            */
+        // get the first input and copy its quantization parameters
+        const auto& first_input = operands_[num_outputs_];
+        TORCH_INTERNAL_ASSERT_DEBUG_ONLY(first_input.tensor.is_quantized());
+        TORCH_INTERNAL_ASSERT(
+            first_input.tensor.qscheme() == c10::kPerTensorAffine ||
+            first_input.tensor.qscheme() == c10::kPerTensorSymmetric,
+            "Advanced indexing of per-channel quantized tensors is not supported yet");
+        quant_options = TensorQuantizationOptions(
+            first_input.tensor.q_scale(), first_input.tensor.q_zero_point());
+      }
+
       if (inverted) {
         // can just return contiguous output
         // it is faster because it avoids allocating 0 size tensor and
         // resizing and restriding it
-        set_output(i, tensor_shape, {}, op.options(), names_);
+        set_output(
+            i, tensor_shape, {}, op.options(), names_, quant_options);
       } else {
         auto tensor_stride = invert_perm(op.stride_bytes);
         for (int dim = 0; dim < ndim(); dim++) {
           tensor_stride[dim] /= element_size;
         }
-        set_output(i, tensor_shape, tensor_stride, op.options(), names_);
+        set_output(
+            i, tensor_shape, tensor_stride, op.options(), names_,
+            quant_options);
       }
       op.current_dtype = op.target_dtype;
     } else if (op.tensor.defined()) {
@@ -1307,7 +1337,10 @@ void TensorIteratorBase::build(TensorIteratorConfig& config) {
 // The precondition for this function is that maybe_get_output() now
 // unconditionally returns a real Tensor (prior to output setting,
 // this function may return an undefined tensor.)
-void TensorIteratorBase::set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides, TensorOptions options, DimnameList names) {
+void TensorIteratorBase::set_output(
+    int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
+    TensorOptions options, DimnameList names,
+    c10::optional<TensorQuantizationOptions> quant_options) {
   auto& op = operands_[output_idx];
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(output_idx < num_outputs_);
   const auto& t = maybe_get_output(output_idx);
@@ -1369,7 +1402,10 @@ void TensorIteratorBase::set_output(int64_t output_idx, IntArrayRef sizes, IntAr
 // This is the "traditional" implementation of set_output.  On TensorIterator
 // instances, it is invoked directly from various call sites in this file.  No
 // funny business.
-void TensorIterator::set_output(int64_t output_idx, IntArrayRef sizes, IntArrayRef strides, TensorOptions options, DimnameList names) {
+void TensorIterator::set_output(
+    int64_t output_idx, IntArrayRef sizes, IntArrayRef strides,
+    TensorOptions options, DimnameList names,
+    c10::optional<TensorQuantizationOptions> quant_options) {
   // NB: intentionally no superclass call
   auto& op = operands_[output_idx];
   TORCH_INTERNAL_ASSERT_DEBUG_ONLY(output_idx < num_outputs_);
@@ -1377,7 +1413,13 @@ void TensorIterator::set_output(int64_t output_idx, IntArrayRef sizes, IntArrayR
       if (strides.empty()) {
           if (is_meta_) {
             op.tensor = at::empty_meta(sizes, options);
+          } else if (quant_options.has_value()) {
+            // quantized path
+            op.tensor = at::_empty_affine_quantized(
+                sizes, options, (*quant_options).q_scale,
+                (*quant_options).q_zero_point);
           } else {
+            // non-quantized path
             op.tensor = at::empty(sizes, options);
           }
       } else {
@@ -1389,6 +1431,9 @@ void TensorIterator::set_output(int64_t output_idx, IntArrayRef sizes, IntArrayR
       }
       op.current_dtype = op.target_dtype;
   } else if (op.will_resize) {
+      TORCH_INTERNAL_ASSERT(
+          !quant_options.has_value(),
+          "Resizing quantized Tensors in TensorIterator is not yet implemented.");
       at::native::resize_output(op.tensor, sizes);
       if (!strides.empty()) {
         TORCH_INTERNAL_ASSERT(!options.memory_format_opt().has_value());
