@@ -810,6 +810,7 @@ inline IValue toIValue(
     case TypeKind::FunctionType:
     case TypeKind::GeneratorType:
     case TypeKind::StorageType:
+    case TypeKind::QuantizerPtrType:
     case TypeKind::QuantizerType:
     case TypeKind::VarType:
     case TypeKind::QSchemeType:
