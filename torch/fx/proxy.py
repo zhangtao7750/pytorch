@@ -6,7 +6,6 @@ import operator
 from .graph import magic_methods, reflectable_magic_methods, Graph
 from typing import Tuple, Dict, Optional, Iterable, Any, Iterator
 from .node import Target, Node, Argument, base_types
-from .immutable_collections import FakeNamedTuple
 
 class TracerBase:
     graph: Graph
@@ -56,7 +55,21 @@ class TracerBase:
             # expression as an argument to their constructor, so build this
             # intermediate tuple and unpack it into the NamedTuple constructor
             args = tuple(self.create_arg(elem) for elem in a)
-            return FakeNamedTuple(a._fields, args)  # type: ignore
+
+            class NTReprWrapper(a.__class__):  # type: ignore
+                def __repr__(self):
+                    value_strs = []
+                    for field in self._fields:
+                        value_strs.append(f'{field}={repr(getattr(self, field))}')
+                    return f'{torch.typename(self._repr_wrapper_orig_type())}({",".join(value_strs)})'
+
+                def _repr_wrapper_orig_type(self):
+                    # NTReprWrapper should have only one base: the NamedTuple
+                    # type we constructed it from.
+                    assert len(self.__class__.__bases__) == 1
+                    return self.__class__.__bases__[0]
+
+            return NTReprWrapper(*args)  # type: ignore
         elif isinstance(a, (tuple, list)):
             return type(a)(self.create_arg(elem) for elem in a)
         elif isinstance(a, dict):
