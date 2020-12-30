@@ -1548,7 +1548,7 @@ def random_square_matrix_of_rank(l, rank, dtype=torch.double, device='cpu'):
             s[i] = 1
     return u.mm(torch.diag(s)).mm(v.transpose(0, 1))
 
-def random_well_conditioned_matrix(*shape, dtype, device, mean=1.0, var=0.001):
+def random_well_conditioned_matrix(*shape, dtype, device, mean=1.0, sigma=0.001):
     primitive_dtype = {
         torch.float: torch.float,
         torch.double: torch.double,
@@ -1559,7 +1559,7 @@ def random_well_conditioned_matrix(*shape, dtype, device, mean=1.0, var=0.001):
     m = x.size(-2)
     n = x.size(-1)
     u, _, v = x.svd()
-    s = (torch.randn(*(shape[:-2] + (min(m, n),)), dtype=primitive_dtype[dtype], device=device) * var + mean) \
+    s = (torch.randn(*(shape[:-2] + (min(m, n),)), dtype=primitive_dtype[dtype], device=device) * sigma + mean) \
         .sort(-1, descending=True).values.to(dtype)
     return (u * s.unsqueeze(-2)) @ v.transpose(-2, -1).conj()
 

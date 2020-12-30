@@ -2012,12 +2012,12 @@ struct LapackLstsqHelper {
     // Designed to be used with the `batch_iterator_with_broadcasting` method.
     this->a_working_ptr = a_working_ptr;
     this->b_working_ptr = b_working_ptr;
-    rank_working_ptr = rank_working_ptr ?
-      rank_1d.select(0, a_linear_batch_idx).template data_ptr<int64_t>() :
-      nullptr;
-    s_working_ptr = s_working_ptr ?
-      s_2d.select(0, a_linear_batch_idx).template data_ptr<value_t>() :
-      nullptr;
+    rank_working_ptr = rank_working_ptr
+      ? rank_1d.select(0, a_linear_batch_idx).template data_ptr<int64_t>()
+      : nullptr;
+    s_working_ptr = s_working_ptr
+      ? s_2d.select(0, a_linear_batch_idx).template data_ptr<value_t>()
+      : nullptr;
     return *this;
   }
 };
