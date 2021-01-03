@@ -293,7 +293,7 @@ Example::
     >>> (x - a.pinverse() @ b).abs().max()
     tensor(2.0862e-07)
 
-    >>> aa = a.select(1, -1).zero()
+    >>> aa = a.clone().select(1, -1).zero_()
     >>> xx, rank, _ = torch.linalg.lstsq(aa.view(1, 3, 3), b)
     >>> rank
     tensor([2])
