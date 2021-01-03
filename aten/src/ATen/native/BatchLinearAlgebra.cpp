@@ -2214,7 +2214,7 @@ std::tuple<Tensor, Tensor, Tensor> linalg_lstsq(
     /*nrows=*/std::max(m, n),
     /*desired_batch_sizes=*/broadcast_batch_size(self, b_2d, self.dim() - 2));
 
-  double rcond = cond.has_value()
+  double rcond = cond.has_value() && (cond.value() > 0)
     ? cond.value()
     : _get_epsilon(c10::toValueType(self.scalar_type()));
 
