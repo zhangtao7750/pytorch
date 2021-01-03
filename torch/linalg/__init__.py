@@ -265,7 +265,7 @@ Args:
     Driver ``'gels'`` assumes only full-rank inputs, i.e. ``torch.matrix_rank(a) == min(m, n)``.
     Drivers ``'gelsy'``, ``'gelsd'``, ``'gelss'`` are rank-revealing and hence handle rank-deficient inputs.
     ``'gelsy'`` is QR-based with column pivoting, and ``'gelsd'`` with ``'gelss'`` are SVD-based.
-    ``'gelsy'`` is the fastest among the rank-revealing algorithms that also handle rank-deficient inputs.
+    ``'gelsy'`` is the fastest among the rank-revealing algorithms that also handles rank-deficient inputs.
 
 Returns:
     (Tensor, Tensor, Tensor): a namedtuple (x, rank, s) containing:
