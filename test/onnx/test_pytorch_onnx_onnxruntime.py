@@ -4355,8 +4355,7 @@ class TestONNXRuntime(unittest.TestCase):
         input = torch.randint(10, (7, 5))
         self.run_test(model, (input))
 
-    @disableScriptTest()  # scripting prim::Uninitialized, prim::dtype, prim::unchecked_cast
-    @skipIfUnsupportedMinOpsetVersion(10)
+    @skipIfUnsupportedMinOpsetVersion(11)
     @skipIfUnsupportedOpsetVersion([12, 13])  # Due to ONNX Loop shape inference issue
     def test_embedding_bag_1d_per_sample_weights(self):
         class EmbeddingModel(torch.nn.Module):
@@ -4371,8 +4370,7 @@ class TestONNXRuntime(unittest.TestCase):
         embedding_matrix = torch.rand(10, 15)
         self.run_test(model, (embedding_matrix, x, offset, w))
 
-    @disableScriptTest()  # scripting prim::Uninitialized, prim::dtype, prim::unchecked_cast
-    @skipIfUnsupportedMinOpsetVersion(10)
+    @skipIfUnsupportedMinOpsetVersion(11)
     @skipIfUnsupportedOpsetVersion([12, 13])  # Due to ONNX Loop shape inference issue
     def test_embedding_bag_2d_per_sample_weights(self):
         class EmbeddingModel(torch.nn.Module):
@@ -4618,6 +4616,124 @@ class TestONNXRuntime(unittest.TestCase):
         self.assertEqual('Unsupported: ONNX export of Pad in opset 9. The sizes of the padding must be constant. ' +
                          'Please try opset version 11.', the_exception.args[0])
 
+    @skipIfUnsupportedMinOpsetVersion(9)
+    def test_if_fold(self):
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() == 2:
+                    y = y + 4
+                    y = y + 2
+                else:
+                    y = y - 1
+                return y
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.numel() > 1:
+                    y = y + 4
+                else:
+                    y = y + 2
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() != 3:
+                    y = y + 4
+                    y = y + 2
+                else:
+                    return y
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() >= 1:
+                    y = y + 4
+                else:
+                    y = y - 1
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() <= 1:
+                    y = y + 4
+                else:
+                    y = y + 2
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() < 3 and y.dtype == torch.int:
+                    y = y + 4
+                    y = y + 2
+                else:
+                    return y
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.dim() == 3 and y.dtype == torch.int:
+                    y = y + 4
+                    y = y + 2
+                else:
+                    y = y + 1
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, y):
+                if y.numel() != 0 and y.dim() == 2:
+                    y = y + 4
+                    y = y + 2
+                else:
+                    return y
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), x)
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, x, y):
+                if x.numel() == y.numel():
+                    y = x + y
+                else:
+                    y = y - x
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        y = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), (x, y))
+
+        class IfFoldModel(torch.nn.Module):
+            def forward(self, x, y):
+                if x.numel() != y.numel():
+                    y = x + y
+                else:
+                    y = y - x
+                return y
+
+        x = torch.ones((3, 4), dtype=torch.int)
+        y = torch.ones((3, 4), dtype=torch.int)
+        self.run_test(IfFoldModel(), (x, y))
+
     @skipIfUnsupportedMinOpsetVersion(11)
     @skipIfONNXShapeInference(False)
     def test_uninitialized(self):
@@ -4769,7 +4885,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_crossentropyloss(self):
         for ignore_index in [-100, 1]:
             x = torch.randn(3, 5)
@@ -4936,7 +5051,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -4958,7 +5072,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_none(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -4981,7 +5094,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_mean(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -5004,7 +5116,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_sum(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -5027,7 +5138,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_mean_weights(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -5050,7 +5160,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_mean_ignore_index(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):
@@ -5070,7 +5179,6 @@ class TestONNXRuntime(unittest.TestCase):
 
     @skipIfUnsupportedOpsetVersion([13])
     @skipIfUnsupportedMinOpsetVersion(12)
-    @disableScriptTest()  # shape/type inference
     def test_nllloss_2d_mean_ignore_index_weights(self):
         class NLLModel(torch.nn.Module):
             def __init__(self):

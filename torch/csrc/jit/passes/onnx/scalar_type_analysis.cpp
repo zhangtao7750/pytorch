@@ -178,10 +178,10 @@ static c10::optional<c10::ScalarType> InferExpectedScalarType(const Node* n) {
           } else {
             typesFromTensors.emplace_back(scalar_type);
           }
-        } else if (
-            auto scalar_type =
-                input->type()->cast<TensorType>()->scalarType()) {
-          typesFromTensors.emplace_back(*scalar_type);
+        } else if (auto tensor_type = input->type()->cast<TensorType>()) {
+          auto scalar_type = tensor_type->scalarType();
+          if (scalar_type)
+            typesFromTensors.emplace_back(*scalar_type);
         }
       });
 
@@ -233,8 +233,10 @@ static void UpdateScalarTypeForInputs(
   }
 
   for (auto input : n->inputs()) {
+    c10::optional<c10::ScalarType> input_scalar_type = c10::nullopt;
     auto input_tensor_type = input->type()->cast<TensorType>();
-    auto input_scalar_type = input_tensor_type->scalarType();
+    if (input_tensor_type)
+      input_scalar_type = input_tensor_type->scalarType();
 
     if ((input->node()->kind() == onnx::Constant) ||
         (input_scalar_type && (*input_scalar_type != scalar_type))) {
@@ -270,6 +272,18 @@ static void UpdateScalarTypeForOutput(
       CreateProfiledTensorTypeWithScalarType(output_tensor_type, scalar_type));
 }
 
+static void ImplicitCastNodeForONNX(Node* n) {
+  if (IsImplicitCastSupported(n->kind())) {
+    auto expected_scalar_type = InferExpectedScalarType(n);
+    if (expected_scalar_type) {
+      UpdateScalarTypeForInputs(n, *expected_scalar_type);
+      if (!IsComparisonOp(n->kind())) {
+        UpdateScalarTypeForOutput(n, *expected_scalar_type);
+      }
+    }
+  }
+}
+
 static void ImplicitCastForONNX(Block* block) {
   for (auto it = block->nodes().begin(); it != block->nodes().end(); ++it) {
     for (auto sub : it->blocks()) {
@@ -277,15 +291,7 @@ static void ImplicitCastForONNX(Block* block) {
     }
     auto* subgraph = it->owningGraph();
 
-    if (IsImplicitCastSupported(it->kind())) {
-      auto expected_scalar_type = InferExpectedScalarType(*it);
-      if (expected_scalar_type) {
-        UpdateScalarTypeForInputs(*it, *expected_scalar_type);
-        if (!IsComparisonOp(it->kind())) {
-          UpdateScalarTypeForOutput(*it, *expected_scalar_type);
-        }
-      }
-    }
+    ImplicitCastNodeForONNX(*it);
   }
   EliminateDeadCode(
       block, true, DCESideEffectPolicy::ALLOW_DELETING_NODES_WITH_SIDE_EFFECTS);
@@ -305,6 +311,10 @@ void ImplicitCastForONNX(const std::shared_ptr<Graph>& graph) {
 
 void ScalarTypeAnalysisForONNX(const std::shared_ptr<Graph>& graph) {
   ImplicitCastForONNX(graph->block());
+}
+
+void ScalarTypeAnalysisNodeForONNX(Node* n) {
+  ImplicitCastNodeForONNX(n);
 }
 
 } // namespace jit
