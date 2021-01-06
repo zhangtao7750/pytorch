@@ -74,7 +74,7 @@ class TestTorchbind(JitTestCase):
         class CustomWrapper(torch.nn.Module):
             def __init__(self, foo):
                 super(CustomWrapper, self).__init__()
-                self.foo = foo 
+                self.foo = foo
 
             def forward(self) -> None:
                 self.foo.increment(1)
@@ -83,7 +83,7 @@ class TestTorchbind(JitTestCase):
             def __prepare_scriptable__(self):
                 int1, int2 = self.foo.return_vals()
                 foo = torch.classes._TorchScriptTesting._Foo(int1, int2)
-                return CustomWrapper(foo) 
+                return CustomWrapper(foo)
 
         foo = CustomWrapper(NonJitableClass(1, 2))
         jit_foo = torch.jit.script(foo)
@@ -267,7 +267,7 @@ class TestTorchbind(JitTestCase):
         self.assertEqual(torch.zeros(4, 4), traced())
 
     def test_torchbind_pass_wrong_type(self):
-        with self.assertRaisesRegex(RuntimeError, 'missing attribute capsule'):
+        with self.assertRaisesRegex(RuntimeError, 'but instead found type \'Tensor\''):
             torch.ops._TorchScriptTesting.take_an_instance(torch.rand(3, 4))
 
     def test_torchbind_tracing_nested(self):
