@@ -216,7 +216,7 @@ Examples::
 lstsq = _add_docstr(_linalg.linalg_lstsq, r"""
 torch.linalg.lstsq(input, b, cond=None, driver_name=None) -> (Tensor x, Tensor rank, Tensor s)
 
-Computes the least squared solution to the system with a batch of matrices :math:`a` (represented by :attr:`input`)
+Computes the least squares solution to the system with a batch of matrices :math:`a` (represented by :attr:`input`)
 and a batch of vectors/matrices :math:`b` such that
 
 .. math::
@@ -232,8 +232,7 @@ where :math:`a` is of size :math:`(..., m, n)` and :math:`b` is of size :math:`(
 The returned solution :math:`x` is of shape :math:`(..., \max(m, n), k)` if :math:`b` is of shape :math:`(..., m, k)`,
 and is of shape :math:`(..., \max(m, n), 1)` if :math:`b` is of shape :math:`(..., m)`.
 The batch sizes of :math:`x` is the broadcasted shape of the batch dimensions of :math:`a` and :math:`b`.
-A minimizer (not necessarily unique for rank-deficient matrices)
-could be obtained by slicing the solution with, for example, ``x.narrow(-2, 0, n)``.
+The minimizer could be obtained by slicing the solution with, for example, ``x.narrow(-2, 0, n)``.
 The remaining entries ``x.narrow(-2, n, max(m, n) - n)``
 encode the residual sum of squares for the solution in each column for full-rank matrices in :math:`a`,
 i.e. if :math:`\text{rank}(a[..., :, :]) = \min(m, n)`, the residuals for the system :math:`a[..., :, :]` could be obtained by
