@@ -284,10 +284,6 @@ and a batch of vectors/matrices :math:`b` such that
 where :math:`a` is of size :math:`(..., m, n)` and :math:`b` is of size :math:`(..., m, k)` or
 :math:`(..., m)`. The batch dimensions of :math:`a` and :math:`b` have to be broadcastable.
 
-.. note::
-    The input matrices/vectors are supposed to be non-empty, i.e. :math:`m > 0, m > 0, k > 0`.
-    The empty batch dimensions are allowed however.
-
 The returned solution :math:`x` is of shape :math:`(..., \max(m, n), k)` if :math:`b` is of shape :math:`(..., m, k)`,
 and is of shape :math:`(..., \max(m, n), 1)` if :math:`b` is of shape :math:`(..., m)`.
 The batch sizes of :math:`x` is the broadcasted shape of the batch dimensions of :math:`a` and :math:`b`.
