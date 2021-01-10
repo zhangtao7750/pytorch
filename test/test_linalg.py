@@ -210,6 +210,36 @@ class TestLinalg(TestCase):
     @skipCUDAIfNoMagma
     @dtypes(torch.float, torch.double, torch.cfloat, torch.cdouble)
     def test_linalg_lstsq_input_checks(self, device, dtype):
+        # check empty inputs
+        # empty batches
+        a = torch.rand(0, 0, 3, 3, dtype=dtype, device=device)
+        b = torch.rand(0, 0, 3, 2, dtype=dtype, device=device)
+        self.assertEqual(
+            torch.linalg.lstsq(a, b)[0],
+            torch.zeros(0, 0, 3, 2, dtype=dtype, device=device)
+        )
+        # empty a and b
+        a = torch.rand(2, 2, 0, 0, dtype=dtype, device=device)
+        b = torch.rand(2, 2, 0, 0, dtype=dtype, device=device)
+        self.assertEqual(
+            torch.linalg.lstsq(a, b)[0],
+            torch.zeros(2, 2, 0, 0, dtype=dtype, device=device)
+        )
+        # empty a and b
+        a = torch.rand(2, 2, 3, 0, dtype=dtype, device=device)
+        b = torch.rand(2, 2, 3, 0, dtype=dtype, device=device)
+        self.assertEqual(
+            torch.linalg.lstsq(a, b)[0],
+            torch.zeros(2, 2, 3, 0, dtype=dtype, device=device)
+        )
+        # empty a but not b
+        a = torch.rand(2, 2, 3, 0, dtype=dtype, device=device)
+        b = torch.rand(2, 2, 3, 2, dtype=dtype, device=device)
+        self.assertEqual(
+            torch.linalg.lstsq(a, b)[0],
+            torch.zeros(2, 2, 3, 2, dtype=dtype, device=device)
+        )
+
         a = torch.rand(2, 3, dtype=dtype, device=device)
         b = torch.rand(3, dtype=dtype, device=device)
 
