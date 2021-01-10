@@ -2184,16 +2184,6 @@ std::tuple<Tensor, Tensor, Tensor> linalg_lstsq(
     dim_diff ? "torch.linalg.lstsq: self.size(-2) should match b.size(-1)" :
       "torch.linalg.lstsq: self.size(-2) should match b.size(-2)"
   );
-  TORCH_CHECK(
-    (self.size(-2) > 0) && (self.size(-1) > 0),
-    "torch.linalg.lstsq: input `self` Tensor has to be a non-empty matrix or "
-    "a batch of non-empty matrices"
-  );
-  TORCH_CHECK(
-    (b_2d.size(-2) > 0) && (b_2d.size(-1) > 0),
-    "torch.linalg.lstsq: input `b` Tensor has to be a non-empty vector/matrix or "
-    "a batch of non-empty vectors/matrices"
-  );
 
   // if `driver_name` is empty, we use `driver_opt` to be set to
   // c10::nullopt if working with CUDA tensors,
@@ -2266,8 +2256,16 @@ std::tuple<Tensor, Tensor, Tensor> linalg_lstsq(
     : _get_epsilon(c10::toValueType(self.scalar_type()));
 
   Tensor x, rank, singular_values;
-  std::tie(x, rank, singular_values) =
-    at::_lstsq_helper(self_working_copy, b_working_copy, rcond, driver_opt);
+  // path if neither `self` nor `b` is empty
+  if (self.numel() && b.numel()) {
+    std::tie(x, rank, singular_values) =
+      at::_lstsq_helper(self_working_copy, b_working_copy, rcond, driver_opt);
+  }
+  // if either `self` or `b` is empty, return an empty tensor or,
+  // if non-zero sizes, return a tensor of zeros.
+  else {
+    x = b_working_copy.zero_();
+  }
   return std::make_tuple(x, rank, singular_values);
 }
 

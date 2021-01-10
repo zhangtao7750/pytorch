@@ -97,8 +97,8 @@ void batch_iterator_with_broadcasting(const Tensor& a, const Tensor& b, const fu
 
   auto m = a.size(-2);
   auto n = a.size(-1);
-  auto a_3d = a.view({-1, m, n});
-  auto b_3d = b.view({-1, b.size(-2), b.size(-1)});
+  auto a_3d = a.view({batchCount(a), m, n});
+  auto b_3d = b.view({batchCount(b), b.size(-2), b.size(-1)});
 
   auto a_broadcasts_over_b = (a_batch_sizes != b_batch_sizes);
   Tensor a_buffer, a_was_accessed, a_buffer_3d;
@@ -108,7 +108,7 @@ void batch_iterator_with_broadcasting(const Tensor& a, const Tensor& b, const fu
     a_buffer = at::empty_strided(a.sizes(), a.strides(), a.options())
       .copy_(a);
     a_was_accessed = at::zeros(batchCount(a), at::kBool);
-    a_buffer_3d = a_buffer.view({-1, m, n});
+    a_buffer_3d = a_buffer.view({batchCount(a), m, n});
     check_if_copy_needed_for_a = [&](int64_t a_curr_linear_batch_idx) {
       auto* a_was_accessed_flag = a_was_accessed
         .select(0, a_curr_linear_batch_idx)

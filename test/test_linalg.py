@@ -228,16 +228,6 @@ class TestLinalg(TestCase):
         a = torch.rand(2, 2, 2, 2, dtype=dtype, device=device)
         b = torch.rand(2, 2, 2, dtype=dtype, device=device)
 
-        with self.assertRaisesRegex(RuntimeError, 'has to be a non-empty matrix'):
-            torch.linalg.lstsq(a.as_strided((2, 2, 2, 0), a.stride()), b)
-
-        with self.assertRaisesRegex(RuntimeError, 'has to be a non-empty matrix'):
-            torch.linalg.lstsq(a.as_strided((2, 2, 0, 2), a.stride()), b.as_strided((2, 2, 0), b.stride()))
-
-        b = torch.rand(2, 2, 2, 2, dtype=dtype, device=device)
-        with self.assertRaisesRegex(RuntimeError, 'has to be a non-empty vector/matrix'):
-            torch.linalg.lstsq(a, b.as_strided((2, 2, 2, 0), b.stride()))
-
         if device != 'cpu':
             with self.assertRaisesRegex(RuntimeError, '`driver_name` other than `gels` is not supported on CUDA'):
                 torch.linalg.lstsq(a, b, driver_name='fictitious_driver')
