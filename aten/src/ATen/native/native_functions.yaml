@@ -8904,7 +8904,7 @@
   dispatch:
     DefaultBackend: det
 
-- func: linalg_lstsq(Tensor self, Tensor b, float? cond=None, str? driver_name=None) -> (Tensor x, Tensor rank, Tensor s)
+- func: linalg_lstsq(Tensor self, Tensor b, float? cond=None, str? driver_name=None) -> (Tensor solution, Tensor rank, Tensor singular_values)
   python_module: linalg
   use_c10_dispatcher: full
   variants: function

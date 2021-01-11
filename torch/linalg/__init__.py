@@ -284,7 +284,7 @@ and a batch of vectors/matrices :math:`b` such that
 where :math:`a` is of size :math:`(..., m, n)` and :math:`b` is of size :math:`(..., m, k)` or
 :math:`(..., m)`. The batch dimensions of :math:`a` and :math:`b` have to be broadcastable.
 
-The returned solution :math:`x` is of shape :math:`(..., \max(m, n), k)` if :math:`b` is of shape :math:`(..., m, k)`,
+The returned solution :math:`solution` is of shape :math:`(..., \max(m, n), k)` if :math:`b` is of shape :math:`(..., m, k)`,
 and is of shape :math:`(..., \max(m, n), 1)` if :math:`b` is of shape :math:`(..., m)`.
 The batch sizes of :math:`x` is the broadcasted shape of the batch dimensions of :math:`a` and :math:`b`.
 The minimizer could be obtained by slicing the solution with, for example, ``x.narrow(-2, 0, n)``.
@@ -323,10 +323,10 @@ Args:
 
 Returns:
     (Tensor, Tensor, Tensor): a namedtuple (x, rank, s) containing:
-        - **x** (*Tensor*): the least squares solution
+        - **solution** (*Tensor*): the least squares solution
         - **rank** (*Tensor*): the tensor of ranks of the matrix :math:`a` with shape ``a.shape[:-2]``.
             Non-empty if :attr:`driver_name` is one of (``'gelsy'``, ``'gelsd'``, ``'gelss'``).
-        - **s** (*Tensor*): the tensor of singular values of the matrix :math:`a` with shape ``a.shape[:-2] + (min(m, n),)``.
+        - **singular_values** (*Tensor*): the tensor of singular values of the matrix :math:`a` with shape ``a.shape[:-2] + (min(m, n),)``.
             Non-empty if :attr:`driver_name` is one of (``'gelsd'``, ``'gelss'``)
 
 Example::

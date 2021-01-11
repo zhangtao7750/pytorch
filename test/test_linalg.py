@@ -158,14 +158,14 @@ class TestLinalg(TestCase):
             m = a.size(-2)
             n = a.size(-1)
             res = torch.linalg.lstsq(a, b, cond=cond, driver_name=driver)
-            sol = res.x.narrow(-2, 0, n)
+            sol = res.solution.narrow(-2, 0, n)
 
             check_correctness(a, b, sol)
             if device == 'cpu':
                 if driver != 'gels':
                     check_ranks(a, res.rank, cond)
                     if (driver is not None) and driver != 'gelsy':
-                        check_singular_values(a, res.s)
+                        check_singular_values(a, res.singular_values)
 
     @skipCUDAIfNoMagma
     @skipCPUIfNoLapack
@@ -174,7 +174,7 @@ class TestLinalg(TestCase):
         from torch.testing._internal.common_utils import random_well_conditioned_matrix
 
         def check_correctness(a, b):
-            sol = torch.linalg.lstsq(a, b).x
+            sol = torch.linalg.lstsq(a, b).solution
             sol2 = a.pinverse() @ b
             self.assertEqual(sol, sol2, rtol=1e-5, atol=1e-5)
 

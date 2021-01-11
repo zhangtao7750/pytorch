@@ -67,7 +67,7 @@ class TestNamedTupleAPI(unittest.TestCase):
             op(operators=['lstsq'], input=(a,), names=('solution', 'QR'), hasout=True),
             op(operators=['linalg_eigh'], input=("L",), names=('eigenvalues', 'eigenvectors'), hasout=True),
             op(operators=['unpack_dual'], input=(0,), names=('primal', 'tangent'), hasout=False),
-            op(operators=['linalg_lstsq'], input=(a,), names=('x', 'rank', 's'), hasout=False),
+            op(operators=['linalg_lstsq'], input=(a,), names=('solution', 'rank', 'singular_values'), hasout=False),
         ]
 
         def get_func(f):
