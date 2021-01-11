@@ -326,7 +326,8 @@ Returns:
         - **solution** (*Tensor*): the least squares solution
         - **rank** (*Tensor*): the tensor of ranks of the matrix :math:`a` with shape ``a.shape[:-2]``.
             Non-empty if :attr:`driver_name` is one of (``'gelsy'``, ``'gelsd'``, ``'gelss'``).
-        - **singular_values** (*Tensor*): the tensor of singular values of the matrix :math:`a` with shape ``a.shape[:-2] + (min(m, n),)``.
+        - **singular_values** (*Tensor*): the tensor of singular values
+            of the matrix :math:`a` with shape ``a.shape[:-2] + (min(m, n),)``.
             Non-empty if :attr:`driver_name` is one of (``'gelsd'``, ``'gelss'``)
 
 Example::
