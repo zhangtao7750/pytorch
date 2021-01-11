@@ -51,7 +51,7 @@ struct PeepholeOptimizeImpl {
         // This can occur if a module has an optional attribute, and it is
         // initialized as None.
         for (Value* output : node->outputs()) {
-          if (output->type()->cast<NoneType>()) {
+          if (output->type()->castRaw<NoneType>()) {
             output->replaceAllUsesWith(graph_->insertConstant(IValue()));
           }
         }
@@ -142,7 +142,7 @@ struct PeepholeOptimizeImpl {
       } else if (
           node->matches("aten::size(Tensor self) -> int[]") &&
           shape_peepholes_) {
-        if (auto ptt = node->input()->type()->cast<TensorType>()) {
+        if (auto* ptt = node->input()->type()->castRaw<TensorType>()) {
           if (auto sizes = ptt->sizes().concrete_sizes()) {
             GRAPH_UPDATE(
                 getHeader(node),
@@ -157,7 +157,7 @@ struct PeepholeOptimizeImpl {
       } else if (
           node->matches("aten::size(Tensor self, int dim) -> int") &&
           shape_peepholes_) {
-        if (auto ptt = node->inputs().at(0)->type()->cast<TensorType>()) {
+        if (auto* ptt = node->inputs().at(0)->type()->castRaw<TensorType>()) {
           if (auto maybe_ndim = ptt->sizes().size()) {
             auto ndim = *maybe_ndim;
             auto maybe_index = toIValue(node->inputs().at(1));
