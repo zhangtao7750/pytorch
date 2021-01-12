@@ -1,7 +1,8 @@
-from pickle import Pickler, _Pickler, _getattribute, whichmodule, _extension_registry, _compat_pickle  # type: ignore
+from pickle import Pickler, whichmodule, _Pickler, _getattribute, _extension_registry, _compat_pickle  # type: ignore
 from pickle import GLOBAL, STACK_GLOBAL, EXT1, EXT2, EXT4, PicklingError
 from types import FunctionType
 from struct import pack
+from ._mangling import demangle, is_mangled
 import importlib
 
 
@@ -24,7 +25,11 @@ class CustomImportPickler(_Pickler):
         if name is None:
             name = obj.__name__
 
-        module_name = whichmodule(obj, name)
+        orig_module_name = whichmodule(obj, name)
+        # CHANGED: demangle the module name before importing. If this obj came
+        # out of a PackageImporter, `__module__` will be mangled. See
+        # mangling.md for details.
+        module_name = demangle(orig_module_name)
         try:
             # CHANGED: self.import_module rather than
             # __import__
@@ -36,9 +41,15 @@ class CustomImportPickler(_Pickler):
                 (obj, module_name, name)) from None
         else:
             if obj2 is not obj:
-                raise PicklingError(
-                    "Can't pickle %r: it's not the same object as %s.%s" %
-                    (obj, module_name, name))
+                # CHANGED: More specific error message in the case of mangling.
+                obj2_parent_module_name = getattr(obj2, "__module__", orig_module_name)
+                msg = f"Can't pickle {obj}: it's not the same object as {obj2_parent_module_name}.{name}."
+
+                if is_mangled(getattr(obj, "__module__", "")) or is_mangled(obj2_parent_module_name):
+                    msg += ("\nThis is likely due to a dependency collision in torch.package; "
+                            "check the order of PackageExporter.imports.")
+
+                raise PicklingError(msg)
 
         if self.proto >= 2:
             code = _extension_registry.get((module_name, name))
