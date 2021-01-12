@@ -75,10 +75,34 @@ static inline int64_t matrixStride(const Tensor& batched_matrices) {
   return batched_matrices.size(-1) * batched_matrices.size(-2);
 }
 
-// we assume that `a` and `b` do not overlap, and moreover,
-// we expect that there exist tensors a_c and b_c such that
-// a = a_c.contiguous().transpose(-1, -2)
-// b = b_c.contiguous().transpose(-1, -2)
+// This function is designed to be used with linear algebra methods that minimize
+// L(ax - b) = 0, where L is generally the identity map (`solve`, for example)
+// or the L2 norm (`lstsq`).
+// It is expected that `a` and `b` are contiguous tensors of column-major matrices
+// (so that a.view({-1, a.size(-2), a.size(-1)}) succeeds, same for `b`),
+// with the following additional properties:
+//
+// 1. a.dim() == b.dim()
+// 2. a.shape[:-2] broadcasts over b.shape[:-2]
+// 3. a.size(i) <= b.size(i) for i=0,..., a.dim() - 3 (only for batch dimensions)
+//
+// MAGMA/LAPACK modify tensor `a` in-place, and the main goal of this method
+// is to be memory efficient, which means that if there exists an index i such that
+// a.shape[i] < b.shape[i], 0 <= i <= a.dim() - 3,
+// then instead of materializing copies of `a` in the broadcasted shape, we keep
+// a buffer copy of `a` along with flags that check whether specific batch dimension
+// indices for `a` were already accessed. If they were, we copy the data from the buffer
+// into `a`. The number of copies does not exceed prod(max(a.shape[:-2], b.shape[:-2))
+// and this value is attained for tensors with non-empty batch dimensions.
+//
+// func_t `f` is a callable that is being supplied with
+// scalar_t* a_working_ptr, scalar_t* b_working_ptr, int64_t a_linear_batch_idx.
+// a_working_ptr and b_working_ptr can directly be passed to LAPACK/MAGMA routines,
+// and a_linear_batch_idx is an index in the 3d representation which corresponds to
+// the memory a_working_ptr points to, in other words:
+// a_working_ptr == a.view({-1, a.size(-2), a.size(-1)}.select(0, a_linear_batch_idx).data_ptr<scalar_t>();
+// a_linear_batch_idx is usefull to store metadata related to `a`, such as, for example,
+// its rank or singular values (see linalg_lstsq).
 template<typename scalar_t, typename func_t>
 void batch_iterator_with_broadcasting(const Tensor& a, const Tensor& b, const func_t& f) {
   IntArrayRef a_batch_sizes(a.sizes().data(), a.dim() - 2);
